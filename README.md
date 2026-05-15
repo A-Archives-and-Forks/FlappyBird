@@ -34,14 +34,10 @@ All of this was combined using OpenGL ES 2, shaders, and Android Native Activity
 
 ## 🔧 Build:
 
-### Visual Studio (Windows)
+### Visual Studio Code (Windows)
 
-1. Download [Visual Studio 2022](https://visualstudio.microsoft.com/).
-2. Install components: C++ Desktop Development and C++ Mobile Development.
-3. Download Android Studio (for apktool, sdk, ndk).
-4. Install NDK 27.1.12297006 and Android SDK Platform 30.
-5. Configure the project for "Debug ARM" and make changes to build.bat.
-6. Compile via CTRL + B. 🛠️
+1. Create .env from .env.example
+2. Run build.bat
 
 ### Linux and macOS (Makefile)
 
