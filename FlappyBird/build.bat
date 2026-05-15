@@ -98,6 +98,6 @@ start %ADB% logcat -s flappy
 :: Restore original AndroidManifest.xml
 move /Y app\src\main\AndroidManifest.xml.bak app\src\main\AndroidManifest.xml
 
-exit
+:: exit
 
 endlocal
