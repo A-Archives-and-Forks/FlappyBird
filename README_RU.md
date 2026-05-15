@@ -28,14 +28,10 @@
 
 ## 🔧 Сборка:
 
-### Visual Studio (Windows)
+### Visual Studio Code (Windows)
 
-1. Скачайте [Visual Studio 2022](https://visualstudio.microsoft.com/).
-2. Установите компоненты: Разработка классических приложений на С++ и Разработка мобильных приложений на языке С++.
-3. Скачайте Android Studio (для apktool, sdk, ndk).
-4. Установите NDK 27.1.12297006 и Android SDK Платформа 30.
-5. Настройте проект для "Debug ARM" и внесите изменения в build.bat.
-6. Компилируйте через CTRL + B. 🛠️
+1. Создать .env из .env.example
+2. Запустить build.bat
 
 ### Linux и macOS (Makefile)
 
