@@ -12,6 +12,7 @@
 
 
 bool                 g_Initialized = false;
+static bool          s_GameSessionLoaded = false;
 EGLDisplay           g_EglDisplay = EGL_NO_DISPLAY;
 EGLSurface           g_EglSurface = EGL_NO_SURFACE;
 EGLContext           g_EglContext = EGL_NO_CONTEXT;
@@ -141,9 +142,19 @@ void Init(struct android_app* app)
     WindowSizeX = ANativeWindow_getWidth(g_App->window);
     WindowSizeY = ANativeWindow_getHeight(g_App->window);
 
-    if (!InitGame())
+    if (!s_GameSessionLoaded)
     {
-        Log("Game not init!");
+        if (!InitGame())
+        {
+            Log("Game not init!");
+            goto fail_destroy_gl_assets;
+        }
+        s_GameSessionLoaded = true;
+    }
+    else if (!ResumeGameAfterSurfaceLoss())
+    {
+        Log("Resume game after surface loss failed");
+        s_GameSessionLoaded = false;
         goto fail_destroy_gl_assets;
     }
     assetsLoaded = true;
@@ -223,10 +234,13 @@ void MainLoopStep()
     eglSwapBuffers(g_EglDisplay, g_EglSurface);
 }
 
-void Shutdown()
+void Shutdown(bool preserve_game_session)
 {
     if (!g_Initialized)
         return;
+
+    if (!preserve_game_session)
+        s_GameSessionLoaded = false;
 
     EGLBoolean ctxOk = EGL_FALSE;
     if (g_EglDisplay != EGL_NO_DISPLAY && g_EglSurface != EGL_NO_SURFACE && g_EglContext != EGL_NO_CONTEXT)

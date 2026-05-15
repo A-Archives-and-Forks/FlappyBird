@@ -137,7 +137,7 @@ int Random(int min, int max)
     return min + rand() / (RAND_MAX / (max - min + 1) + 1);
 }
 
-bool InitGame()
+bool LoadGameTextures(void)
 {
     //buttons
     t_pause = LoadTexture("buttons/pause.png");
@@ -187,6 +187,46 @@ bool InitGame()
     t_yellowbird_downflap = LoadTexture("sprites/yellowbird-downflap.png");
     t_yellowbird_midflap = LoadTexture("sprites/yellowbird-midflap.png");
     t_yellowbird_upflap = LoadTexture("sprites/yellowbird-upflap.png");
+
+    return true;
+}
+
+static void RefreshDerivedTextureHandles(void)
+{
+    birdTexturesForLogo[0] = t_yellowbird_downflap;
+    birdTexturesForLogo[1] = t_yellowbird_midflap;
+    birdTexturesForLogo[2] = t_yellowbird_upflap;
+
+    switch (bird.frame % 3)
+    {
+    case 0: bird.currentTexture = t_yellowbird_downflap; break;
+    case 1: bird.currentTexture = t_yellowbird_midflap; break;
+    case 2: bird.currentTexture = t_yellowbird_upflap; break;
+    }
+
+    curTextureAnimBirdForLogo = birdTexturesForLogo[currentFrameForLogo % 3];
+
+    if (score >= 40) medalTexture = t_platinum_medal;
+    else if (score >= 30) medalTexture = t_gold_medal;
+    else if (score >= 20) medalTexture = t_silver_medal;
+    else if (score >= 10) medalTexture = t_bronze_medal;
+    else medalTexture = 0;
+}
+
+bool ResumeGameAfterSurfaceLoss(void)
+{
+    if (!LoadGameTextures())
+        return false;
+
+    gameSpeed = WindowSizeX / 135;
+    RefreshDerivedTextureHandles();
+    return true;
+}
+
+bool InitGame()
+{
+    if (!LoadGameTextures())
+        return false;
 
     bird.x = ScaleX(18.52f);
     bird.y = ScaleY(20.f);

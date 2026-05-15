@@ -2,6 +2,8 @@
 #include "init.h"
 #include "utils.h"
 #include "mouse.h"
+#include "audio.h"
+#include <time.h>
 #include <unistd.h>
 
 
@@ -12,6 +14,16 @@ double g_Time = 0.0;
 float DeltaTime = 0.0f;
 double g_LastFrameTime = 0.0;
 
+static bool s_AppFocused = true;
+
+static void resetFrameClockAfterResume(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    double t = (double)ts.tv_sec + (double)ts.tv_nsec / 1000000000.0;
+    g_Time = t;
+    g_LastFrameTime = t;
+}
 
 static void handleAppCmd(struct android_app* app, int32_t cmd)
 {
@@ -21,11 +33,18 @@ static void handleAppCmd(struct android_app* app, int32_t cmd)
         Init(app);
         break;
     case APP_CMD_TERM_WINDOW:
-        Shutdown();
+        Shutdown(true);
         break;
     case APP_CMD_GAINED_FOCUS:
+        s_AppFocused = true;
+        resetFrameClockAfterResume();
+        if (g_Initialized)
+            ResumeAudio();
         break;
     case APP_CMD_LOST_FOCUS:
+        s_AppFocused = false;
+        if (g_Initialized)
+            PauseAudio();
         break;
     }
 }
@@ -110,34 +129,40 @@ void android_main(struct android_app* state)
             }
 
             if (state->destroyRequested != 0) {
-                Shutdown();
+                Shutdown(false);
                 return;
             }
         }
 
         if (g_Initialized)
         {
-            struct timespec current_timespec;
-            clock_gettime(CLOCK_MONOTONIC, &current_timespec);
-            double current_time = (double)(current_timespec.tv_sec) + (current_timespec.tv_nsec / 1000000000.0);
-
-            // calc delta time
-            DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)TARGET_FRAME_TIME;
-
-            // checking if enough time has passed for a new frame
-            if (current_time - g_LastFrameTime >= TARGET_FRAME_TIME)
+            if (s_AppFocused)
             {
-                MainLoopStep();
-                MouseReset(&mouse);
+                struct timespec current_timespec;
+                clock_gettime(CLOCK_MONOTONIC, &current_timespec);
+                double current_time = (double)(current_timespec.tv_sec) + (current_timespec.tv_nsec / 1000000000.0);
 
-                // update time last frame
-                g_LastFrameTime = current_time;
+                // calc delta time
+                DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)TARGET_FRAME_TIME;
+
+                // checking if enough time has passed for a new frame
+                if (current_time - g_LastFrameTime >= TARGET_FRAME_TIME)
+                {
+                    MainLoopStep();
+                    MouseReset(&mouse);
+
+                    // update time last frame
+                    g_LastFrameTime = current_time;
+                }
+
+                g_Time = current_time;
+
+                usleep(1000);
             }
-
-            g_Time = current_time;
-
-            // timeout for thread to fix excessive CPU consumption
-            usleep(1000);
+            else
+            {
+                usleep(8000);
+            }
         }
     }
 }

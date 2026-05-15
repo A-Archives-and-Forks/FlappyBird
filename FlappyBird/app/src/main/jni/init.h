@@ -1,6 +1,7 @@
 #ifndef INIT_H
 #define INIT_H
 
+#include <stdbool.h>
 #include "android_native_app_glue.h"
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
@@ -19,6 +20,6 @@ extern GLuint gColorHandle;
 
 void Init(struct android_app* app);
 void MainLoopStep();
-void Shutdown();
+void Shutdown(bool preserve_game_session);
 
 #endif // INIT_H
