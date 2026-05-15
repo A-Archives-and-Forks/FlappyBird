@@ -57,6 +57,9 @@ GLuint t_message;
 GLuint t_new;
 GLuint t_panel;
 GLuint t_pipe_green;
+/* pipe-green.png pixel size — used to tile without vertical stretching */
+static unsigned s_pipeTexW = 52u;
+static unsigned s_pipeTexH = 320u;
 GLuint t_platinum_medal;
 GLuint t_silver_medal;
 GLuint t_sparkle_sheet;
@@ -180,7 +183,15 @@ bool LoadGameTextures(void)
     t_message = LoadTexture("sprites/message.png");
     t_new = LoadTexture("sprites/new.png");
     t_panel = LoadTexture("sprites/panel.png");
-    t_pipe_green = LoadTexture("sprites/pipe-green.png");
+    {
+        unsigned pw = 0u, ph = 0u;
+        t_pipe_green = LoadTextureSized("sprites/pipe-green.png", &pw, &ph);
+        if (t_pipe_green && pw > 0u && ph > 0u)
+        {
+            s_pipeTexW = pw;
+            s_pipeTexH = ph;
+        }
+    }
     t_platinum_medal = LoadTexture("sprites/platinum-medal.png");
     t_silver_medal = LoadTexture("sprites/silver-medal.png");
     t_sparkle_sheet = LoadTexture("sprites/sparkle-sheet.png");
@@ -402,12 +413,37 @@ void RenderBird()
 
 void RenderPipes()
 {
+    const float gap = bird.height * SIZE_SPACE_PIPE;
+    const float texRatio = (float)s_pipeTexH / (float)(s_pipeTexW ? s_pipeTexW : 52u);
+    const float naturalH = pipes[0].w * texRatio;
+
     for (int i = 0; i < 2; i++)
     {
-        RenderTexture(t_pipe_green, pipes[i].x, pipes[i].y + pipes[i].offset - (bird.height * SIZE_SPACE_PIPE),
-            pipes[i].w, -(pipes[i].h + pipes[i].offset - (bird.height * SIZE_SPACE_PIPE)));
+        /* lower pipe: tile downward from the gap; UV top→bottom 0…1 like one long repeating strip */
+        float H_lo = pipes[i].h - pipes[i].offset;
+        float y = pipes[i].y + pipes[i].offset;
+        float rem = H_lo;
+        while (rem > 0.0001f && naturalH > 0.0001f)
+        {
+            float slice = rem < naturalH ? rem : naturalH;
+            float v1 = slice / naturalH;
+            RenderTextureUV(t_pipe_green, pipes[i].x, y, pipes[i].w, slice, 0.f, 0.f, 1.f, v1);
+            y += slice;
+            rem -= slice;
+        }
 
-        RenderTexture(t_pipe_green, pipes[i].x, pipes[i].y + pipes[i].offset, pipes[i].w, pipes[i].h - pipes[i].offset);
+        /* upper pipe: same tiling as lower but each segment flipped 180° (swap V: rim toward gap) */
+        float H_up = pipes[i].h + pipes[i].offset - gap;
+        rem = H_up;
+        y = pipes[i].y - pipes[i].h;
+        while (rem > 0.0001f && naturalH > 0.0001f)
+        {
+            float slice = rem < naturalH ? rem : naturalH;
+            float vf = slice / naturalH;
+            RenderTextureUV(t_pipe_green, pipes[i].x, y, pipes[i].w, slice, 0.f, vf, 1.f, 0.f);
+            y += slice;
+            rem -= slice;
+        }
     }
 }
 

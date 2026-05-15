@@ -50,6 +50,11 @@ void ShutdownTextureQuadBuffers(void)
 
 GLuint LoadTexture(const char* assetPath)
 {
+    return LoadTextureSized(assetPath, NULL, NULL);
+}
+
+GLuint LoadTextureSized(const char* assetPath, unsigned* outWidth, unsigned* outHeight)
+{
     AAsset* file = AAssetManager_open(g_App->activity->assetManager, assetPath, AASSET_MODE_BUFFER);
     if (!file)
     {
@@ -79,6 +84,10 @@ GLuint LoadTexture(const char* assetPath)
 
     unsigned width = upng_get_width(png);
     unsigned height = upng_get_height(png);
+    if (outWidth)
+        *outWidth = width;
+    if (outHeight)
+        *outHeight = height;
 
     //glEnable(GL_TEXTURE_2D);
     glEnable(GL_BLEND);
@@ -126,6 +135,44 @@ void RenderTexture(GLuint texture, float x, float y, float width, float height)
         normalized_x + normalized_width, normalized_y, 1.0f, 0.0f,
         normalized_x + normalized_width, normalized_y - normalized_height, 1.0f, 1.0f,
         normalized_x, normalized_y - normalized_height, 0.0f, 1.0f
+    };
+
+    glBindBuffer(GL_ARRAY_BUFFER, g_textureQuadVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_textureQuadEbo);
+
+    glEnableVertexAttribArray(g_texPositionAttrib);
+    glVertexAttribPointer(g_texPositionAttrib, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)0);
+
+    glEnableVertexAttribArray(g_texTexCoordAttrib);
+    glVertexAttribPointer(g_texTexCoordAttrib, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glUniform1i(g_texSamplerUniform, 0);
+
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void RenderTextureUV(GLuint texture, float x, float y, float width, float height,
+    float u0, float v0, float u1, float v1)
+{
+    glUseProgram(textureProgram);
+
+    float normalized_x = (2.0f * x / WindowSizeX) - 1.0f;
+    float normalized_y = 1.0f - (2.0f * y / WindowSizeY);
+    float normalized_width = 2.0f * width / WindowSizeX;
+    float normalized_height = 2.0f * height / WindowSizeY;
+
+    GLfloat vertices[] = {
+        normalized_x, normalized_y, u0, v0,
+        normalized_x + normalized_width, normalized_y, u1, v0,
+        normalized_x + normalized_width, normalized_y - normalized_height, u1, v1,
+        normalized_x, normalized_y - normalized_height, u0, v1
     };
 
     glBindBuffer(GL_ARRAY_BUFFER, g_textureQuadVbo);
