@@ -64,6 +64,8 @@ void CreateAudioEngine()
     if (result != SL_RESULT_SUCCESS)
     {
         Log("Failed to realize engine: %d", result);
+        (*engineObject)->Destroy(engineObject);
+        engineObject = NULL;
         return;
     }
 
@@ -72,6 +74,9 @@ void CreateAudioEngine()
     if (result != SL_RESULT_SUCCESS)
     {
         Log("Failed to get engine interface: %d", result);
+        (*engineObject)->Destroy(engineObject);
+        engineObject = NULL;
+        engineEngine = NULL;
         return;
     }
 
@@ -82,6 +87,9 @@ void CreateAudioEngine()
     if (result != SL_RESULT_SUCCESS)
     {
         Log("Failed to create output mix: %d", result);
+        (*engineObject)->Destroy(engineObject);
+        engineObject = NULL;
+        engineEngine = NULL;
         return;
     }
 
@@ -90,6 +98,11 @@ void CreateAudioEngine()
     if (result != SL_RESULT_SUCCESS)
     {
         Log("Failed to realize output mix: %d", result);
+        (*outputMixObject)->Destroy(outputMixObject);
+        outputMixObject = NULL;
+        (*engineObject)->Destroy(engineObject);
+        engineObject = NULL;
+        engineEngine = NULL;
         return;
     }
 }
@@ -140,6 +153,8 @@ void CreateAudioPlayer(AudioPlayer* player, const char* assetPath)
     if (result != SL_RESULT_SUCCESS)
     {
         Log("Failed to realize player: %d", result);
+        (*player->playerObject)->Destroy(player->playerObject);
+        player->playerObject = NULL;
         close(fd);
         return;
     }
@@ -149,6 +164,9 @@ void CreateAudioPlayer(AudioPlayer* player, const char* assetPath)
     if (result != SL_RESULT_SUCCESS)
     {
         Log("Failed to get play interface: %d", result);
+        (*player->playerObject)->Destroy(player->playerObject);
+        player->playerObject = NULL;
+        player->playerPlay = NULL;
         close(fd);
         return;
     }
@@ -158,6 +176,10 @@ void CreateAudioPlayer(AudioPlayer* player, const char* assetPath)
     if (result != SL_RESULT_SUCCESS)
     {
         Log("Failed to get seek interface: %d", result);
+        (*player->playerObject)->Destroy(player->playerObject);
+        player->playerObject = NULL;
+        player->playerPlay = NULL;
+        player->playerSeek = NULL;
         close(fd);
         return;
     }

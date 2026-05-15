@@ -2,6 +2,7 @@
 #include <GLES2/gl2.h>
 #include <android/native_window.h>
 #include <android/asset_manager.h>
+#include <stdbool.h>
 #include "init.h"
 #include "utils.h"
 #include "texture.h"
@@ -71,6 +72,8 @@ void Init(struct android_app* app)
         return;
 
     g_App = app;
+    bool assetsLoaded = false;
+
     ANativeWindow_acquire(g_App->window);
 
     // Initialize EGL
@@ -78,13 +81,13 @@ void Init(struct android_app* app)
     if (g_EglDisplay == EGL_NO_DISPLAY)
     {
         Log("eglGetDisplay(EGL_DEFAULT_DISPLAY) returned EGL_NO_DISPLAY");
-        return;
+        goto fail_release_window;
     }
 
     if (eglInitialize(g_EglDisplay, 0, 0) != EGL_TRUE)
     {
         Log("eglInitialize() returned with an error");
-        return;
+        goto fail_terminate_display;
     }
 
     const EGLint egl_attributes[] = {
@@ -99,12 +102,12 @@ void Init(struct android_app* app)
     if (eglChooseConfig(g_EglDisplay, egl_attributes, NULL, 0, &num_configs) != EGL_TRUE)
     {
         Log("eglChooseConfig() returned with an error");
-        return;
+        goto fail_terminate_display;
     }
     if (num_configs == 0)
     {
         Log("eglChooseConfig() returned 0 matching config");
-        return;
+        goto fail_terminate_display;
     }
 
     EGLConfig egl_config;
@@ -118,20 +121,20 @@ void Init(struct android_app* app)
     if (g_EglContext == EGL_NO_CONTEXT)
     {
         Log("eglCreateContext() returned EGL_NO_CONTEXT");
-        return;
+        goto fail_terminate_display;
     }
 
     g_EglSurface = eglCreateWindowSurface(g_EglDisplay, egl_config, g_App->window, NULL);
     if (g_EglSurface == EGL_NO_SURFACE)
     {
         Log("eglCreateWindowSurface() returned EGL_NO_SURFACE");
-        return;
+        goto fail_destroy_context;
     }
 
     if (eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) != EGL_TRUE)
     {
         Log("eglMakeCurrent() returned with an error");
-        return;
+        goto fail_destroy_surface;
     }
 
     // Set window size
@@ -141,8 +144,9 @@ void Init(struct android_app* app)
     if (!InitGame())
     {
         Log("Game not init!");
-        return;
+        goto fail_destroy_gl_assets;
     }
+    assetsLoaded = true;
 
     CreateAudioEngine();
 
@@ -158,6 +162,50 @@ void Init(struct android_app* app)
     Log("FlappyBird is loaded!");
 
     g_Initialized = true;
+    return;
+
+fail_destroy_gl_assets:
+    if (g_EglDisplay != EGL_NO_DISPLAY && g_EglSurface != EGL_NO_SURFACE && g_EglContext != EGL_NO_CONTEXT &&
+        eglMakeCurrent(g_EglDisplay, g_EglSurface, g_EglSurface, g_EglContext) == EGL_TRUE)
+    {
+        ShutdownTextureQuadBuffers();
+        glDeleteProgram(textureProgram);
+        textureProgram = 0;
+        glDeleteProgram(colorProgram);
+        colorProgram = 0;
+        if (assetsLoaded)
+            ShutdownGame();
+    }
+    else if (assetsLoaded)
+    {
+        DestroyAudioPlayer();
+        DestroyAudioEngine();
+    }
+
+fail_destroy_surface:
+    if (g_EglDisplay != EGL_NO_DISPLAY && g_EglSurface != EGL_NO_SURFACE)
+    {
+        eglMakeCurrent(g_EglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        eglDestroySurface(g_EglDisplay, g_EglSurface);
+        g_EglSurface = EGL_NO_SURFACE;
+    }
+
+fail_destroy_context:
+    if (g_EglDisplay != EGL_NO_DISPLAY && g_EglContext != EGL_NO_CONTEXT)
+    {
+        eglDestroyContext(g_EglDisplay, g_EglContext);
+        g_EglContext = EGL_NO_CONTEXT;
+    }
+
+fail_terminate_display:
+    if (g_EglDisplay != EGL_NO_DISPLAY)
+    {
+        eglTerminate(g_EglDisplay);
+        g_EglDisplay = EGL_NO_DISPLAY;
+    }
+
+fail_release_window:
+    ANativeWindow_release(g_App->window);
 }
 
 void MainLoopStep()

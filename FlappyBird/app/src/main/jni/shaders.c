@@ -28,6 +28,17 @@ GLuint createProgram(const char* vertexSource, const char* fragmentSource)
     glAttachShader(program, fragmentShader);
     glLinkProgram(program);
 
+    if (vertexShader != 0)
+    {
+        glDetachShader(program, vertexShader);
+        glDeleteShader(vertexShader);
+    }
+    if (fragmentShader != 0)
+    {
+        glDetachShader(program, fragmentShader);
+        glDeleteShader(fragmentShader);
+    }
+
     GLint success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {

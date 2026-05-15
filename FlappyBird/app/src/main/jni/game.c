@@ -764,7 +764,6 @@ void ShutdownGame()
     glDeleteTextures(1, &t_score);
     glDeleteTextures(1, &t_share);
     glDeleteTextures(1, &t_start);
-    glDeleteTextures(1, &t_ok);
 
     glDeleteTextures(1, &t_0);
     glDeleteTextures(1, &t_1);
