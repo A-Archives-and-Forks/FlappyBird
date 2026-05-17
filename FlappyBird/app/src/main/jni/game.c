@@ -605,6 +605,12 @@ void Render()
     }
     else if (currentState == GO_GAME)
     {
+        if (IsClick(0, 0, ScaleX(100.f), ScaleY(100.f)))
+        {
+            Jump();
+            PlayAudio("audio/wing.mp3");
+        }
+
         ApplyGravity();
         AnimateBird();
 
@@ -629,12 +635,6 @@ void Render()
         {
             currentState = STOP_GAME;
             PlayAudio("audio/hit.mp3");
-        }
-
-        if (IsClick(0, 0, ScaleX(100.f), ScaleY(100.f)))
-        {
-            Jump();
-            PlayAudio("audio/wing.mp3");
         }
 
         RenderPipes();
